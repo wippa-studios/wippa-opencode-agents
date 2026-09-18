@@ -1,0 +1,36 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Single primary agent — Build and Plan disabled.
+  "default_agent": "plan-then-build",
+
+  // Adaptive permission decisions via plugin (single source of truth).
+  "plugin": ["./plugin/smart-approval.ts"],
+
+  "agent": {
+    "build": { "disable": true },
+    "plan": { "disable": true },
+
+    "plan-then-build": {
+      "mode": "primary",
+      "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+      "prompt": "{file:./prompts/plan-then-build.txt}",
+
+      // Read-only tools: always allow. Everything else: plugin decides.
+      "permission": {
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        "task": "allow",
+        "todowrite": "allow",
+        "webfetch": "allow",
+        "websearch": "allow",
+        "lsp": "allow",
+        "skill": "allow",
+        "question": "allow",
+        "doom_loop": "allow"
+      }
+    }
+  }
+}
