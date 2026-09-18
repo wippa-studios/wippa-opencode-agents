@@ -1,94 +1,118 @@
-# Wippa OpenCode Agents
+# ⚡ Wippa OpenCode Agents
 
-A streamlined multi-agent configuration for [OpenCode](https://opencode.ai) — one unified agent that plans, builds, reviews, tests, and verifies code in a single autonomous flow.
+A streamlined, high-efficiency multi-agent configuration for OpenCode.
 
-## What's Inside
+Wippa OpenCode Agents eliminates agent sprawl by utilizing one unified primary agent that dynamically plans, builds, reviews, tests, and verifies code in a single autonomous flow. By intelligently scaling its approach based on task complexity, it keeps your workspace clean, your workflow fast, and your operations secure.
 
-```
-opencode.jsonc              # Agent config — single primary agent, permissions
-prompts/plan-then-build.txt # The main system prompt (132 lines)
-plugin/smart-approval.ts    # Adaptive permission plugin (regex-based deny rules)
-agent/                      # Subagent definitions
-  context-scout.md          # Convention discovery (read-only)
-  task-manager.md           # Atomic subtask breakdown (8+ files)
-  code-reviewer.md          # Diff review + security analysis
-  test-engineer.md          # Test authoring + execution
-skills/
-  repo-conventions/         # Match existing codebase patterns
-  progress-tracker/         # PROGRESS.md protocol for multi-step work
-context/
-  standards/                # Code quality + test coverage defaults
-  workflows/                # Task breakdown workflow
-```
+## ✨ Key Design Philosophy
 
-## Key Design Decisions
+**One Primary Agent:** Say goodbye to endless hand-offs. `plan-then-build` is the only active agent. Default OpenCode Build and Plan agents are disabled. Subagents are invoked strictly on-demand, minimizing overhead.
 
-**One agent, not five.** `plan-then-build` is the only active agent. Build and Plan stock agents are disabled. Subagents (`context-scout`, `code-reviewer`, etc.) are invoked on-demand via `task()` — they don't run unless needed.
+**Adaptive Velocity:** Why run a 6-phase pipeline for a typo? Tasks touching 3 or fewer files use a lightning-fast 3-phase flow. Complex tasks automatically trigger the full pipeline.
 
-**Fast path for simple work.** Tasks touching ≤3 files use a 3-phase flow: `ASSESS → BUILD → VALIDATE`. The full 6-phase pipeline only kicks in for multi-component work.
+**Intelligent Permissions:** Built-in regex-based security. The `smart-approval` plugin acts as the single source of truth for deny rules, offering infinitely more flexibility than standard glob patterns.
 
-**Permissions via plugin, not config.** The `smart-approval` plugin is the single source of truth for deny rules. The JSON config only declares broad allows for read-only tools. This means deny rules are regex-based and more flexible than glob patterns.
+**Minimal Artifacts:** No messy workspaces. Simple tasks only update `PROGRESS.md`. Complex tasks generate a concise `PLAN.md` and `REPORT.md`—keeping your repository clean of unnecessary markdown trails.
 
-**Minimal artifacts.** Simple tasks update `PROGRESS.md` only. Complex tasks produce `PLAN.md` + `REPORT.md` — not 5 separate files per task.
+## 🚀 Installation
 
-## Install
-
-Copy this directory to `~/.config/opencode/`:
+Install the configuration directly into your OpenCode config directory.
 
 ```bash
+# 1. Clone the repository into your OpenCode configuration folder
 git clone https://github.com/wippa-studios/wippa-opencode-agents.git ~/.config/opencode
+
+# 2. Navigate to the directory
 cd ~/.config/opencode
-npm install  # installs the plugin dependency
+
+# 3. Install the required plugin dependencies
+npm install
 ```
 
-Or add it to an existing config by copying the relevant files.
+> **Note:** If you already have an existing OpenCode configuration, you can seamlessly integrate Wippa by copying the relevant files from this repository into your setup.
 
-## Workflow
+## 🔄 Adaptive Workflows
 
-### Simple tasks (≤3 files)
+The primary agent dynamically scales its execution pipeline based on the scope of the request.
+
+### 🏃‍♂️ Fast Path (Simple Tasks, ≤3 Files)
+
+Designed for bug fixes, minor feature additions, and refactoring.
+
+1. **ASSESS:** `context-scout` runs (if in a new repo) to read 3-5 similar files and align with codebase conventions. Generates a lightweight `PLAN.md`.
+2. **BUILD:** Executes implementation, linting, and type-checking.
+3. **VALIDATE:** Conducts self-review, runs relevant tests, and updates `PROGRESS.md`.
+
+### 🏗️ Deep Path (Complex Tasks, >3 Files)
+
+Designed for architectural shifts, multi-component features, and wide-scale refactoring.
+
+1. **EXPLORE:** Deep codebase search and convention discovery.
+2. **PLAN:** High-level architecture design and comprehensive `PLAN.md` generation.
+3. **BUILD:** Incremental, step-by-step implementation.
+4. **REVIEW:** Dual-layer review utilizing self-check capabilities plus the `code-reviewer` subagent.
+5. **TEST:** Delegates to the `test-engineer` subagent for comprehensive test authoring and execution.
+6. **VERIFY:** Final quality gates (ensuring tests pass, no critical security findings, and strict adherence to the initial scope).
+
+## 📂 Repository Architecture
 
 ```
-ASSESS → context-scout (if new repo) → read 3-5 similar files → PLAN.md
-BUILD   → implement, lint, typecheck
-VALIDATE → self-review, run tests, update PROGRESS.md
+wippa-opencode-agents/
+├── opencode.jsonc              # Core agent config, permissions, & primary agent routing
+├── prompts/
+│   └── plan-then-build.txt     # Main system prompt driving the unified workflow (132 lines)
+├── plugin/
+│   └── smart-approval.ts       # Adaptive permission plugin handling regex-based deny rules
+├── agent/                      # On-demand Subagent definitions
+│   ├── context-scout.md        # Read-only convention & style discovery
+│   ├── task-manager.md         # Atomic subtask breakdown for complex (8+ file) jobs
+│   ├── code-reviewer.md        # Diff review & security analysis
+│   └── test-engineer.md        # Test suite authoring & execution
+├── skills/
+│   ├── repo-conventions/       # Logic for matching existing codebase patterns
+│   └── progress-tracker/       # Multi-step PROGRESS.md protocol management
+└── context/
+    ├── standards/              # Baselines for code quality and test coverage
+    └── workflows/              # Rule sets for task breakdown
 ```
 
-### Complex tasks (>3 files)
+## 🤖 The Subagent Ecosystem
 
-```
-EXPLORE → convention discovery, codebase search
-PLAN    → architecture design, PLAN.md
-BUILD   → implement incrementally
-REVIEW  → self-review + code-reviewer subagent
-TEST    → test-engineer subagent or direct
-VERIFY  → self-check gates (tests pass, no critical findings, scope matches)
-```
+Subagents in Wippa do not run in the background. They are highly specialized tools invoked via `task()` exclusively when the primary agent requires their specific expertise.
 
-## Autonomy Rules
+| Agent | Role | When it is Triggered |
+|-------|------|----------------------|
+| `context-scout` | Convention discovery & style matching | First task in an unfamiliar repository |
+| `task-manager` | Atomic subtask breakdown & tracking | Complex, multi-component workflows (8+ files) |
+| `code-reviewer` | Diff review & static security analysis | Non-trivial architectural changes |
+| `test-engineer` | Test authoring & execution | Post-implementation validation phase |
 
-- **Act by default.** State the plan, execute it. No routine approvals.
-- **Ask only when:** genuinely ambiguous + wrong guess wastes work, or irreversible action outside workspace.
-- **Never:** ask twice, ask "should I proceed?", commit/push/PR unless explicitly asked.
+## 🛡️ Security: Smart Approval Plugin
 
-## Subagents
+Wippa replaces static, rigid configuration files with the `smart-approval` TypeScript plugin. This intercepts all permission decisions, auto-approving routine development work while rigidly blocking destructive or out-of-scope operations.
 
-| Agent | Role | When to use |
-|-------|------|-------------|
-| `context-scout` | Convention discovery | First task in unfamiliar repo |
-| `task-manager` | Subtask breakdown | 8+ files, multi-component |
-| `code-reviewer` | Diff review + security | Non-trivial changes |
-| `test-engineer` | Test authoring + execution | After implementation |
+**Hard-Blocked Actions:**
 
-## Plugin: Smart Approval
+- **Destructive Bash:** `sudo`, `rm -rf /`, `mkfs`, `dd`, `shutdown`, fork bombs, `curl | sh`
+- **Sensitive Edits:** `.env`, `.key`, `.pem`, `.ssh/`, `.git/`, `node_modules/`
+- **External Directories:** Access outside the workspace, including `~/.ssh/`, `~/.aws/`, `~/.gnupg/`, `~/.kube/`
 
-The `smart-approval` plugin intercepts permission decisions and auto-approves routine work while blocking dangerous operations:
+Everything else is safely auto-approved to maintain velocity. The plugin operates on a strict "deny-first for sensitive paths" model and will never weaken a structurally configured deny rule.
 
-- **Bash**: blocks `sudo`, `rm -rf /`, `mkfs`, `dd`, `shutdown`, fork bombs, `curl|sh`
-- **Edit**: blocks `.env`, `.key`, `.pem`, `.ssh/`, `.git/`, `node_modules/`
-- **External dirs**: blocks `~/.ssh/`, `~/.aws/`, `~/.gnupg/`, `~/.kube/`
+## 🧠 Autonomy & Interaction Rules
 
-Everything else is auto-approved. The plugin never weakens a configured deny.
+The Wippa primary agent is designed to operate seamlessly with minimal human intervention. It follows a strict behavioral protocol:
 
-## License
+**Act by Default:** State the plan, execute the plan. No waiting for routine approvals.
 
-MIT
+**Ask Only When Necessary:** The agent will only pause for human input if a request is genuinely ambiguous (and a wrong guess would waste work) or if an action is irreversible/outside the workspace.
+
+**Strictly Prohibited Behaviors:**
+
+- Asking the same question twice.
+- Asking "should I proceed?" after stating a clear plan.
+- Committing, pushing, or opening PRs unless explicitly instructed by the user.
+
+## 📄 License
+
+This project is licensed under the MIT License.
